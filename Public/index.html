@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WaveSpeed Seedream Generator</title>
+    <title>WaveSpeed AI Image Generator</title>
     <style>
       body {
         font-family: Arial, sans-serif;
-        background: #1e1e2f;
+        background-color: #0e0e0e;
         color: #fff;
         display: flex;
         justify-content: center;
@@ -15,90 +15,125 @@
         min-height: 100vh;
         margin: 0;
       }
+
       .container {
-        background: #2c2c3c;
-        padding: 30px;
+        background: #1a1a1a;
+        padding: 25px;
         border-radius: 12px;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-        width: 400px;
-      }
-      h1 {
+        width: 420px;
         text-align: center;
-        color: #00ffe0;
-        margin-bottom: 20px;
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
       }
-      label {
-        display: block;
-        margin-top: 10px;
-        font-weight: bold;
-      }
+
       input,
-      textarea {
-        width: 100%;
-        padding: 8px;
-        margin-top: 5px;
-        border-radius: 6px;
-        border: none;
-        outline: none;
-      }
-      input:focus,
-      textarea:focus {
-        border: 2px solid #00ffe0;
-      }
+      select,
       button {
-        margin-top: 20px;
         width: 100%;
-        padding: 10px;
-        background: #00ffe0;
+        padding: 12px;
+        margin: 8px 0;
+        border-radius: 8px;
         border: none;
-        border-radius: 6px;
-        color: #1e1e2f;
-        font-weight: bold;
+        font-size: 16px;
+      }
+
+      button {
+        background-color: #00b4d8;
+        color: #fff;
         cursor: pointer;
-        transition: all 0.3s ease;
-      }
-      button:hover {
-        background: #00c7b0;
-        transform: scale(1.05);
-      }
-      #outputMessage {
-        margin-top: 15px;
-        text-align: center;
+        transition: 0.3s;
         font-weight: bold;
+      }
+
+      button:hover {
+        background-color: #0092b0;
+        transform: scale(1.03);
+      }
+
+      .loader {
+        display: none;
+        margin-top: 10px;
+        font-size: 14px;
+        color: #00b4d8;
+      }
+
+      .result-image {
+        margin-top: 15px;
+        width: 100%;
+        border-radius: 8px;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <h1>Seedream Generator</h1>
-      <form id="generateForm">
-        <label for="prompt">Prompt</label>
-        <textarea
-          id="prompt"
-          rows="3"
-          placeholder="Enter your prompt"
-        ></textarea>
+      <h2>WaveSpeed AI Image Generator</h2>
 
-        <label for="subject">Subject Image URL</label>
-        <input type="text" id="subject" placeholder="Enter subject image URL" />
+      <input type="text" id="prompt" placeholder="Enter prompt" required />
+      <input
+        type="text"
+        id="subject"
+        placeholder="Subject Image URL"
+        required
+      />
 
-        <label for="references">Reference Image URLs (comma separated)</label>
-        <input type="text" id="references" placeholder="Enter reference URLs" />
+      <select id="size">
+        <option value="512x512">512 x 512</option>
+        <option value="768x768">768 x 768</option>
+        <option value="1024x1024">1024 x 1024</option>
+      </select>
 
-        <label for="width">Width</label>
-        <input type="number" id="width" value="1920" />
+      <input
+        type="number"
+        id="batchCount"
+        min="1"
+        max="5"
+        placeholder="How many images? (1-5)"
+      />
+      <input type="file" id="references" multiple accept="image/*" />
 
-        <label for="height">Height</label>
-        <input type="number" id="height" value="1080" />
+      <button onclick="generateImages()">🚀 Generate</button>
 
-        <label for="batchCount">Batch Count</label>
-        <input type="number" id="batchCount" value="1" />
+      <div class="loader" id="loader">⏳ Generating… please wait</div>
 
-        <button type="submit">Generate</button>
-        <div id="outputMessage"></div>
-      </form>
+      <div id="result"></div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+      async function generateImages() {
+        const prompt = document.getElementById("prompt").value;
+        const subject = document.getElementById("subject").value;
+        const size = document.getElementById("size").value;
+        const batchCount = document.getElementById("batchCount").value || 1;
+        const [width, height] = size.split("x").map(Number);
+
+        document.getElementById("loader").style.display = "block";
+
+        const res = await fetch("/api/generate-batch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt,
+            subject,
+            width,
+            height,
+            batchCount,
+          }),
+        });
+
+        const data = await res.json();
+        document.getElementById("loader").style.display = "none";
+
+        if (data.images && data.images.length > 0) {
+          document.getElementById("result").innerHTML = data.images
+            .map(
+              (img) =>
+                `<img class='result-image' src='${img}' alt='Generated Output'>`
+            )
+            .join("");
+        } else {
+          document.getElementById("result").innerHTML =
+            "<p>❌ No images generated!</p>";
+        }
+      }
+    </script>
   </body>
 </html>

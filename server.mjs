@@ -1,107 +1,87 @@
+// server.mjs
 import express from "express";
+import cors from "cors";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
-import path from "path";
-import { fileURLToPath } from "url";
+import fetch from "node-fetch"; // optional, only if Node < 18
 
-dotenv.config();
+dotenv.config(); // Load environment variables from .env
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+app.use(cors());
+app.use(express.json()); // Parse JSON from requests
+app.use(express.static("Public")); // Serve your frontend files
 
-// Path helpers
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Parse JSON bodies
-app.use(express.json());
-
-// Serve static frontend files from 'public' folder
-app.use(express.static(path.join(__dirname, "public")));
-
-// ✅ Test route
-app.get("/api/test", (req, res) => {
-  res.json({ message: "Server is running correctly 🚀" });
-});
-
-// ✅ Create record in Airtable
-app.get("/api/create-record", async (req, res) => {
-  try {
-    if (!process.env.AIRTABLE_BASE_ID || !process.env.AIRTABLE_TABLE || !process.env.AIRTABLE_TOKEN) {
-      return res.status(500).json({ message: "❌ Missing Airtable environment variables" });
-    }
-
-    const response = await fetch(
-      `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${process.env.AIRTABLE_TABLE}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.AIRTABLE_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          records: [
-            {
-              fields: {
-                Prompt: "Test Ping",
-                Status: "processing",
-              },
-            },
-          ],
-        }),
-      }
-    );
-
-    const result = await response.json();
-    res.json({ message: "✅ Record created successfully!", result });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "❌ Failed to create record", error: err.message });
-  }
-});
-
-// ✅ Get all Airtable records
-app.get("/api/records", async (req, res) => {
-  try {
-    if (!process.env.AIRTABLE_BASE_ID || !process.env.AIRTABLE_TABLE || !process.env.AIRTABLE_TOKEN) {
-      return res.status(500).json({ message: "❌ Missing Airtable environment variables" });
-    }
-
-    const response = await fetch(
-      `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${process.env.AIRTABLE_TABLE}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${process.env.AIRTABLE_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      }
-    )
-
-    const result = await response.json();
-    res.json({ message: "✅ Records fetched successfully!", data: result.records });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "❌ Failed to fetch records", error: err.message });
-  }
-});
-
-// ✅ POST route to generate batch (for testing)
+// Endpoint to generate images via WaveSpeed API
 app.post("/api/generate-batch", async (req, res) => {
   const { prompt, subject, references, width, height, batchCount } = req.body;
 
   if (!prompt || !subject) {
-    return res.status(400).json({ message: "Prompt and Subject Image URL are required" });
+    return res.status(400).json({ message: "❌ Prompt and Subject URL are required!" });
   }
 
-  // For now, just echo back payload (later you can integrate WaveSpeed + Airtable)
-  res.json({
-    message: "✅ Payload received successfully!",
-    payload: req.body,
-  });
+  try {
+    // Call WaveSpeed API
+    const wsResponse = await fetch("https://api.wavespeed.com/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.WAVESPEED_API_KEY}`,
+      },
+      body: JSON.stringify({
+        prompt,
+        subject,
+        references: references || [],
+        width: width || 512,
+        height: height || 512,
+        batchCount: batchCount || 1,
+      }),
+    });
+
+    const wsData = await wsResponse.json();
+
+    // Here: log to Airtable
+    if (process.env.AIRTABLE_BASE_ID && process.env.AIRTABLE_TABLE && process.env.AIRTABLE_TOKEN) {
+      const airtableResp = await fetch(
+        `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${encodeURIComponent(process.env.AIRTABLE_TABLE)}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.AIRTABLE_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            records: [
+              {
+                fields: {
+                  Prompt: prompt,
+                  Subject: subject,
+                  References: references ? references.join(", ") : "",
+                  Width: width || 512,
+                  Height: height || 512,
+                  BatchCount: batchCount || 1,
+                  GeneratedImages: wsData.images ? wsData.images.join(", ") : "",
+                  Timestamp: new Date().toISOString(),
+                },
+              },
+            ],
+          }),
+        }
+      );
+
+      if (!airtableResp.ok) {
+        console.error("⚠️ Failed to log to Airtable");
+      }
+    }
+
+    res.json({
+      message: "✅ Images generated successfully and logged to Airtable!",
+      images: wsData.images || [],
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "❌ Failed to generate images" });
+  }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

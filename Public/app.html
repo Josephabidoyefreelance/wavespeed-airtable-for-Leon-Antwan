@@ -2,58 +2,77 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>WaveSpeed Seedream</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generate AI Images</title>
     <style>
       body {
-        font-family: Arial;
-        max-width: 800px;
-        margin: 2rem auto;
+        font-family: Arial, sans-serif;
+        background: #0a0f24;
+        color: #ffffff;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+      }
+      .container {
+        width: 100%;
+        max-width: 600px;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0px 0px 25px rgba(77, 227, 255, 0.25);
+      }
+      label {
+        font-weight: bold;
+        display: block;
+        margin-top: 12px;
       }
       input,
       textarea {
         width: 100%;
-        margin-bottom: 1rem;
-        padding: 0.5rem;
+        padding: 10px;
+        margin-top: 6px;
+        border-radius: 8px;
+        border: none;
       }
       button {
-        padding: 0.7rem 1.5rem;
+        width: 100%;
+        margin-top: 20px;
+        padding: 14px;
+        background: #4de3ff;
+        border: none;
+        font-weight: bold;
+        color: #0a0f24;
+        font-size: 18px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s;
       }
-      .output {
-        margin-top: 2rem;
+      button:hover {
+        background: #ffffff;
+        transform: scale(1.05);
       }
-      .record {
-        border: 1px solid #ccc;
-        padding: 1rem;
-        margin-bottom: 1rem;
+      .result img {
+        width: 100%;
+        margin-top: 15px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px #4de3ff;
       }
     </style>
   </head>
   <body>
-    <h1>WaveSpeed Seedream Generator</h1>
+    <div class="container">
+      <h2>Create Image with WaveSpeed ✨</h2>
 
-    <form id="generateForm">
-      <label>Prompt:</label>
-      <textarea name="prompt" required></textarea>
+      <label>Prompt</label>
+      <textarea id="prompt" rows="3"></textarea>
 
-      <label>Subject Image URL:</label>
-      <input type="text" name="subject" required />
+      <label>Subject Image URL</label>
+      <input type="text" id="subject" placeholder="Paste image URL" />
 
-      <label>Reference Image URLs (comma separated):</label>
-      <input type="text" name="references" />
+      <button id="generateBtn">Generate Image</button>
 
-      <label>Width:</label>
-      <input type="number" name="width" value="1920" required />
-
-      <label>Height:</label>
-      <input type="number" name="height" value="1080" required />
-
-      <label>Batch Count:</label>
-      <input type="number" name="batch" value="1" required />
-
-      <button type="submit">Generate</button>
-    </form>
-
-    <div class="output" id="output"></div>
+      <div class="result" id="resultBlock"></div>
+    </div>
 
     <script src="app.js"></script>
   </body>

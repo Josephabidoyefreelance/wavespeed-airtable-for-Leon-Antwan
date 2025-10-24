@@ -1,43 +1,41 @@
-const form = document.getElementById("generateForm");
-const outputDiv = document.getElementById("output");
+document.getElementById("generateBtn").addEventListener("click", async () => {
+  const prompt = document.getElementById("prompt").value.trim();
+  const subject = document.getElementById("subject").value.trim();
+  const resultBlock = document.getElementById("resultBlock");
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+  if (!prompt || !subject) {
+    alert("Please enter prompt & image URL.");
+    return;
+  }
 
-  const formData = new FormData(form);
-  const prompt = formData.get("prompt");
-  const subject = formData.get("subject");
-  const references = formData.get("references") ? formData.get("references").split(",").map(s => s.trim()) : [];
-  const width = formData.get("width");
-  const height = formData.get("height");
-  const batch = formData.get("batch");
-
-  outputDiv.innerHTML = "<p>Generating… check Airtable shortly!</p>";
+  resultBlock.innerHTML = "⏳ Generating...";
 
   try {
-    const response = await fetch("/api/create-record", {
+    const response = await fetch("/api/generate-batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, subject, references, width, height, batch })
+      body: JSON.stringify({
+        prompt,
+        subject,
+        batchCount: 1,
+        width: 512,
+        height: 512,
+      }),
     });
 
     const data = await response.json();
-    outputDiv.innerHTML = `<p>${data.message}</p><pre>${JSON.stringify(data.result, null, 2)}</pre>`;
-
-    const recordsResp = await fetch("/api/records");
-    const recordsData = await recordsResp.json();
-
-    outputDiv.innerHTML += "<h2>All Airtable Records:</h2>";
-    recordsData.data.forEach(record => {
-      const div = document.createElement("div");
-      div.className = "record";
-      div.innerHTML = `<strong>ID:</strong> ${record.id}<br>
-                       <strong>Prompt:</strong> ${record.fields.Prompt || ""}<br>
-                       <strong>Status:</strong> ${record.fields.Status || ""}<br>`;
-      outputDiv.appendChild(div);
-    });
-
-  } catch (err) {
-    outputDiv.innerHTML = `<p style="color:red">Error: ${err.message}</p>`;
+    
+    if (data.images && data.images.length > 0) {
+      const imageUrl = data.images[0];
+      resultBlock.innerHTML = `
+        ✅ Success!
+        <img src="${imageUrl}" alt="Generated Image">
+      `;
+    } else {
+      resultBlock.innerHTML = "⚠ No image returned";
+    }
+  } catch (error) {
+    console.error(error);
+    resultBlock.innerHTML = "❌ Error generating image";
   }
 });

@@ -1,17 +1,18 @@
 {
-  "name": "wavespeed-seedream-airtable",
+  "name": "wavespeed-airtable",
   "version": "1.0.0",
-  "type": "module",
+  "description": "WaveSpeed + Airtable automation server",
   "main": "server.mjs",
+  "type": "module",
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "dev": "node server.mjs"
   },
   "dependencies": {
-    "dotenv": "^17.2.3",
-    "express": "^4.21.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
     "node-fetch": "^3.3.2"
-  },
-  "engines": {
-    "node": ">=18"
   }
 }
